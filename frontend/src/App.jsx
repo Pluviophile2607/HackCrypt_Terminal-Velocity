@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Register from "./pages/Register";
-import SignIn from "./pages/SignIn";
+import LogIn from "./pages/LogIn";
 
 const AppContent = () => {
   return (
@@ -9,8 +9,8 @@ const AppContent = () => {
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/signin" element={<SignIn />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<LogIn />} />
         </Routes>
       </main>
     </div>

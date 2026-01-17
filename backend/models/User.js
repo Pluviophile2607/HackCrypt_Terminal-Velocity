@@ -24,6 +24,11 @@ const userSchema = mongoose.Schema(
             type: String,
             default: 'Computer Science'
         },
+        facultyCode: {
+            type: String,
+            unique: true,
+            sparse: true // Only for faculty
+        },
         biometricProfile: {
             faceVector: [Number],        // Simulated 128-d embedding
         },

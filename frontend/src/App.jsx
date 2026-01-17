@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Register from './pages/Register';
+import RegisterForm from './pages/RegisterForm';
 import SignIn from './pages/SignIn';
 import RoleSelection from './pages/RoleSelection';
 import Footer from './components/Footer';
@@ -37,6 +38,7 @@ const AppContent = () => {
           <Route path="/" element={<Home />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/register-details" element={<RegisterForm />} />
           <Route path="/select-role" element={<RoleSelection />} />
 
           <Route

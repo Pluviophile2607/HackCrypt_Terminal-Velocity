@@ -12,7 +12,13 @@ import {
     LogOut,
     CheckCircle2,
     Database,
-    Globe
+    Globe,
+    AlertCircle,
+    X,
+    Mail,
+    Key,
+    User,
+    ShieldCheck
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -39,13 +45,19 @@ const AdminDashboard = () => {
     });
 
     const [usersList, setUsersList] = useState([]);
+    const [faculties, setFaculties] = useState([]);
+    const [showFacultyModal, setShowFacultyModal] = useState(false);
+    const [facultyFormData, setFacultyFormData] = useState({ name: '', email: '' });
+    const [modalLoading, setModalLoading] = useState(false);
+    const [modalError, setModalError] = useState('');
 
     const fetchAdminData = async () => {
         try {
-            const [anomaliesRes, statsRes, usersRes] = await Promise.all([
+            const [anomaliesRes, statsRes, usersRes, facultiesRes] = await Promise.all([
                 api.get('/attendance/anomalies'),
                 api.get('/attendance/stats'),
-                api.get('/attendance/all-users')
+                api.get('/attendance/all-users'),
+                api.get('/auth/faculties')
             ]);
 
             setAnomalies(anomaliesRes.data || []);
@@ -61,6 +73,7 @@ const AdminDashboard = () => {
                 setDeptData(statsRes.data.deptData || []);
             }
             setUsersList(usersRes.data || []);
+            setFaculties(facultiesRes.data || []);
         } catch (err) {
             console.error('Failed to fetch admin data:', err);
         }
@@ -87,6 +100,22 @@ const AdminDashboard = () => {
             socket.disconnect();
         };
     }, []);
+
+    const handleAddFaculty = async (e) => {
+        e.preventDefault();
+        setModalLoading(true);
+        setModalError('');
+        try {
+            await api.post('/auth/add-faculty', facultyFormData);
+            setFacultyFormData({ name: '', email: '' });
+            setShowFacultyModal(false);
+            fetchAdminData(); // Refresh list
+        } catch (err) {
+            setModalError(err.response?.data?.message || 'Failed to add faculty');
+        } finally {
+            setModalLoading(false);
+        }
+    };
 
     const COLORS = ['#4f46e5', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
@@ -236,7 +265,10 @@ const AdminDashboard = () => {
                             <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                                 <h4 className="font-bold text-gray-900 mb-6">Quick Actions</h4>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <button className="flex flex-col items-center justify-center gap-3 p-4 bg-gray-50 rounded-2xl hover:bg-rose-50 hover:text-rose-600 transition-all border border-transparent hover:border-rose-100 group">
+                                    <button
+                                        onClick={() => setShowFacultyModal(true)}
+                                        className="flex flex-col items-center justify-center gap-3 p-4 bg-gray-50 rounded-2xl hover:bg-rose-50 hover:text-rose-600 transition-all border border-transparent hover:border-rose-100 group"
+                                    >
                                         <div className="p-2 bg-white rounded-lg shadow-sm group-hover:scale-110 transition-transform">
                                             <UserPlus size={20} />
                                         </div>
@@ -301,6 +333,53 @@ const AdminDashboard = () => {
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="p-6 border-b bg-gray-50/50 flex justify-between items-center">
                         <h3 className="font-bold text-gray-900 flex items-center gap-2 text-sm uppercase tracking-widest">
+                            <ShieldCheck size={18} className="text-indigo-600" />
+                            Registered Faculty Directory
+                        </h3>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{faculties.length} Faculty Members</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Faculty Name</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email Address</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Verification Code</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {faculties.map((f, i) => (
+                                    <tr key={i} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+                                                    {f.name?.substring(0, 2)}
+                                                </div>
+                                                <span className="font-bold text-gray-900">{f.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-xs text-gray-500 font-medium">{f.email}</td>
+                                        <td className="px-6 py-4">
+                                            <code className="px-2 py-1 bg-gray-100 rounded-md text-xs font-bold text-indigo-600 tracking-widest">
+                                                {f.facultyCode}
+                                            </code>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${f.password === 'PENDING' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                {f.password === 'PENDING' ? 'Pending Signup' : 'Active'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b bg-gray-50/50 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-900 flex items-center gap-2 text-sm uppercase tracking-widest">
                             <Users size={18} className="text-rose-500" />
                             Global User Directory
                         </h3>
@@ -342,6 +421,84 @@ const AdminDashboard = () => {
                         </table>
                     </div>
                 </div>
+
+                {/* Add Faculty Modal */}
+                {showFacultyModal && (
+                    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+                        <div className="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-black text-gray-900">Authorize <span className="text-indigo-600">Faculty</span></h2>
+                                <button onClick={() => setShowFacultyModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <p className="text-gray-500 text-sm font-medium mb-8 leading-relaxed">
+                                This will generate a unique verification code. The faculty must use this code during registration.
+                            </p>
+
+                            {modalError && (
+                                <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-xs font-bold">
+                                    <AlertCircle size={16} /> {modalError}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleAddFaculty} className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Faculty Name</label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-600 transition-colors">
+                                            <User size={16} />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="e.g. Prof. Alan Turing"
+                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-indigo-600 focus:bg-white outline-none transition-all font-bold text-gray-900"
+                                            value={facultyFormData.name}
+                                            onChange={(e) => setFacultyFormData({ ...facultyFormData, name: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Official Email</label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-600 transition-colors">
+                                            <Mail size={16} />
+                                        </div>
+                                        <input
+                                            type="email"
+                                            required
+                                            placeholder="faculty@university.edu"
+                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-indigo-600 focus:bg-white outline-none transition-all font-bold text-gray-900"
+                                            value={facultyFormData.email}
+                                            onChange={(e) => setFacultyFormData({ ...facultyFormData, email: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowFacultyModal(false)}
+                                        className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-200 transition-all"
+                                    >
+                                        Dismiss
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={modalLoading}
+                                        className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-2"
+                                    >
+                                        {modalLoading ? <Loader2 size={16} className="animate-spin" /> : <Key size={16} />}
+                                        {modalLoading ? 'Syncing...' : 'Generate Code'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </main >
         </div >
     );

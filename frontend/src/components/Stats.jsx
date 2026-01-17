@@ -35,7 +35,7 @@ const StatItem = ({ value, label, suffix = "" }) => {
 
 const Stats = () => {
     return (
-        <section className="py-12 bg-gray-50/50 dark:bg-slate-900/50 transition-colors duration-300">
+        <section className="py-8 bg-gray-50/50 dark:bg-slate-900/50 transition-colors duration-300">
             <div className="max-w-7xl mx-auto px-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <StatItem value={90} suffix="%" label="Attendance Accuracy" />

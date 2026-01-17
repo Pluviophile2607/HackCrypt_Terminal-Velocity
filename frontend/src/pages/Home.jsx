@@ -6,7 +6,7 @@ import Hero from "../components/Hero";
 import Stats from "../components/Stats";
 
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Mousewheel, Pagination } from "swiper/modules";
+import { Mousewheel, Pagination, Parallax } from "swiper/modules";
 
 // Swiper styles
 import "swiper/css";
@@ -32,20 +32,27 @@ const Home = () => {
                     releaseOnEdges: true,
                     sensitivity: 1,
                     thresholdDelta: 10,
+                    forceToAxis: true,
                 }}
                 pagination={{
                     clickable: true,
+                    dynamicBullets: true,
                 }}
+                speed={1000}
+                parallax={true}
                 onSwiper={setSwiper}
-                modules={[Mousewheel, Pagination]}
+                modules={[Mousewheel, Pagination, Parallax]}
                 className="mySwiper h-full w-full"
             >
                 <SwiperSlide className="h-full w-full flex items-center justify-center bg-transparent">
-                    <Hero onScrollToFeatures={scrollToFeatures} />
+                    <div data-swiper-parallax="-300" className="w-full">
+                        <Hero onScrollToFeatures={scrollToFeatures} />
+                    </div>
                 </SwiperSlide>
 
                 <SwiperSlide className="h-full w-full bg-transparent overflow-hidden">
                     <div
+                        data-swiper-parallax="-200"
                         className="h-full overflow-y-auto custom-scrollbar scroll-smooth"
                         onWheel={(e) => {
                             const target = e.currentTarget;
@@ -67,7 +74,7 @@ const Home = () => {
                         }}
                     >
                         <Stats />
-                        <div className="flex-grow py-12">
+                        <div className="flex-grow py-4">
                             <Features />
                         </div>
                         <Footer />

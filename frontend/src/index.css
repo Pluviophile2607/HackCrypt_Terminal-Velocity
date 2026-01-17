@@ -10,17 +10,29 @@
 }
 
 /* Custom Scrollbar */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.dark .custom-scrollbar {
+    scrollbar-color: #475569 transparent;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
+    margin: 4px 0;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 10px;
+    transition: background 0.2s ease;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
@@ -28,7 +40,20 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: #3b82f6;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #60a5fa;
+}
+
+/* Smooth scroll behavior */
+.scroll-smooth {
+    scroll-behavior: smooth;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 @layer base {
@@ -118,4 +143,46 @@ body {
 
 .animate-scan {
     animation: scan 2s linear infinite;
+}
+
+/* Swiper Pagination Styling */
+.swiper-pagination {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    right: 20px !important;
+    left: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: auto !important;
+}
+
+.swiper-pagination-bullet {
+    width: 10px !important;
+    height: 10px !important;
+    background: #cbd5e1 !important;
+    opacity: 0.5 !important;
+    transition: all 0.3s ease !important;
+    margin: 0 !important;
+}
+
+.dark .swiper-pagination-bullet {
+    background: #64748b !important;
+}
+
+.swiper-pagination-bullet-active {
+    background: #3b82f6 !important;
+    opacity: 1 !important;
+    height: 30px !important;
+    border-radius: 5px !important;
+}
+
+.dark .swiper-pagination-bullet-active {
+    background: #60a5fa !important;
+}
+
+.swiper-pagination-bullet:hover {
+    opacity: 0.8 !important;
+    transform: scale(1.2) !important;
 }

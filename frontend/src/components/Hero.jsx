@@ -81,7 +81,7 @@ const Hero = () => {
                         const el = document.getElementById("features");
                         if (el) el.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className="px-8 py-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full font-semibold text-lg flex items-center gap-2"
+                    className="px-8 py-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full font-semibold text-lg flex items-center gap-2 transition-all hover:shadow-md"
                 >
                     <PlayCircle className="w-5 h-5" />
                     How it Works

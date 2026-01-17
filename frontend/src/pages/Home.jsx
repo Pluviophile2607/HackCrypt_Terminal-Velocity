@@ -14,8 +14,7 @@ import "swiper/css/pagination";
 
 const Home = () => {
     return (
-        <div className="h-screen bg-white dark:bg-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 transition-colors duration-300 overflow-hidden">
-            <Navbar />
+        <div className="h-[calc(100vh-5rem)] font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
 
             <Swiper
                 direction={"vertical"}
@@ -33,8 +32,8 @@ const Home = () => {
                 </SwiperSlide>
 
                 <SwiperSlide className="h-full w-full bg-transparent">
-                    <div className="min-h-full flex flex-col">
-                        <div className="flex-grow">
+                    <div className="h-full flex flex-col overflow-y-auto custom-scrollbar">
+                        <div className="flex-grow py-20">
                             <Features />
                         </div>
                         <Footer />

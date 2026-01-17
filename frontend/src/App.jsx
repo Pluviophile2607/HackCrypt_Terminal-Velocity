@@ -28,11 +28,11 @@ const Placeholder = ({ title }) => (
 
 const AppContent = () => {
   const location = useLocation();
-  const hideFooterRoutes = ['/signin', '/register', '/select-role', '/faculty', '/admin'];
+  const hideFooterRoutes = ['/', '/signin', '/register', '/select-role', '/faculty', '/admin'];
   const showFooter = !hideFooterRoutes.includes(location.pathname);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950 transition-colors duration-300">
       <Navbar />
       <main className="flex-1">
         <Routes>

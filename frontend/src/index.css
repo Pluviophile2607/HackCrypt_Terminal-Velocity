@@ -5,10 +5,36 @@
 
 @theme {
     --font-inter: 'Inter', sans-serif;
+    --color-primary: #10b981;
+    --color-primary-hover: #059669;
+}
 
-    /* Custom colors if needed, but standard palette covers most */
-    --color-primary: #2563EB;
-    --color-primary-hover: #1D4ED8;
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+@layer base {
+    body {
+        @apply font-inter;
+    }
 }
 
 body {

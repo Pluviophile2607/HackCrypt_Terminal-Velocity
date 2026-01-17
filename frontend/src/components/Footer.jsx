@@ -70,7 +70,7 @@ const Footer = () => {
 
                 {/* Bottom Bar */}
                 <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-                    <p>&copy; {new Date().getFullYear()} SmartAttend. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} SmartHazri. All rights reserved.</p>
                     <div className="flex gap-6">
                         <Link to="/" className="hover:text-white transition-colors">Privacy Policy</Link>
                         <Link to="/" className="hover:text-white transition-colors">Terms of Service</Link>

@@ -3,13 +3,12 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ArrowRight, ShieldCheck, Users, Activity, PlayCircle } from "lucide-react";
 import { motion } from "framer-motion";
-import Stats from "./Stats";
 
-const Hero = () => {
+const Hero = ({ onScrollToFeatures }) => {
     const { user } = useAuth();
 
     const renderRoleBasedContent = () => {
-        // ADMIN & FACULTY
+        // ... previous logic remains the same
         if (user && (user.role === "admin" || user.role === "faculty")) {
             return (
                 <div className="flex flex-col items-center gap-10">
@@ -77,10 +76,7 @@ const Hero = () => {
                 </Link>
 
                 <button
-                    onClick={() => {
-                        const el = document.getElementById("features");
-                        if (el) el.scrollIntoView({ behavior: "smooth" });
-                    }}
+                    onClick={onScrollToFeatures}
                     className="px-8 py-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 rounded-full font-semibold text-lg flex items-center gap-2 transition-all hover:shadow-md"
                 >
                     <PlayCircle className="w-5 h-5" />
@@ -91,7 +87,7 @@ const Hero = () => {
     };
 
     return (
-        <div className="px-6 max-w-7xl mx-auto flex flex-col items-center justify-between h-full pt-28 pb-10">
+        <div className="px-6 max-w-7xl mx-auto flex flex-col items-center justify-center h-full pt-20 pb-10">
             <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl mx-auto text-center">
                 <motion.h1
                     initial={{ opacity: 0, x: -50 }}
@@ -124,16 +120,6 @@ const Hero = () => {
                     {renderRoleBasedContent()}
                 </motion.div>
             </div>
-
-            {/* Stats Section */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9 }}
-                className="w-full mt-12"
-            >
-                <Stats />
-            </motion.div>
         </div>
     );
 };

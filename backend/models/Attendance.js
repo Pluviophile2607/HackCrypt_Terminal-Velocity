@@ -14,9 +14,13 @@ const attendanceSchema = mongoose.Schema(
         },
         results: {
             face: { success: Boolean, confidence: Number },
-            fingerprint: { type: Boolean, default: false },
             idCard: { type: Boolean, default: false },
             liveness: { type: Boolean, default: false }
+        },
+        capturedData: {
+            faceVector: [Number],
+            qrToken: String,
+            livenessBlinks: Number
         },
         deviceHash: String,
         ipHash: String,

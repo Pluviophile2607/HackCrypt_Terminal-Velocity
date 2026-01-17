@@ -53,6 +53,8 @@ const io = new Server(server, {
     }
 });
 
+app.set('socketio', io);
+
 // Socket.io Connection Logic
 io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);

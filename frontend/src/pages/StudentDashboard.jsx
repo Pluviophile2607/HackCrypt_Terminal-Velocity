@@ -11,7 +11,8 @@ import {
     Clock,
     ScanFace,
     Bell,
-    PlayCircle
+    PlayCircle,
+    Activity
 } from 'lucide-react';
 import Hero from '../components/Hero';
 import Features from '../components/Features';
@@ -32,34 +33,69 @@ const StudentDashboard = () => {
 
     const isDashboard = searchParams.get('view') === 'dashboard';
 
+    const [notifications, setNotifications] = useState([]);
+    const [studentStats, setStudentStats] = useState({
+        avgAttendance: 0,
+        presentCount: 0
+    });
+
     useEffect(() => {
         if (user && user._id !== id) {
             navigate(`/student/${user._id}${isDashboard ? '?view=dashboard' : ''}`, { replace: true });
         }
     }, [id, user, navigate, isDashboard]);
 
-    // Data Fetching
-    useEffect(() => {
-        if (isDashboard) {
-            fetchData();
-            socket.on('connect', () => console.log('Connected to socket'));
-            socket.connect();
-            return () => socket.disconnect();
-        }
-    }, [isDashboard]);
-
-    const fetchData = async () => {
+    const fetchData = async (isInitial = false) => {
         try {
-            const [sessionsRes, historyRes] = await Promise.all([
+            const [sessionsRes, historyRes, statsRes] = await Promise.all([
                 api.get('/session/active'),
-                api.get('/attendance/my')
+                api.get('/attendance/my'),
+                api.get('/attendance/stats')
             ]);
             setActiveSessions(sessionsRes.data);
             setAttendanceHistory(historyRes.data);
+            setStudentStats(statsRes.data);
+
+            // If initial load and there are active sessions, add them to notifications
+            if (isInitial && sessionsRes.data && sessionsRes.data.length > 0) {
+                const initialNotifications = sessionsRes.data.map(session => ({
+                    id: session._id,
+                    message: `Active session available: ${session.courseId}`,
+                    time: 'Ongoing',
+                    isInitial: true
+                }));
+                setNotifications(initialNotifications);
+            }
         } catch (err) {
             console.error('Error fetching student data:', err);
         }
     };
+
+    const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+
+    // Data Fetching
+    useEffect(() => {
+        if (isDashboard) {
+            fetchData(true);
+            socket.on('connect', () => console.log('Connected to socket as Student'));
+            socket.connect();
+
+            socket.on('sessionStarted', (newSession) => {
+                console.log('Real-time session alert received:', newSession);
+                setNotifications(prev => [{
+                    id: Date.now(),
+                    message: `NEW: Attendance session started for ${newSession.courseId}`,
+                    time: new Date().toLocaleTimeString()
+                }, ...prev]);
+                fetchData(false); // Refresh list without resetting notifications
+            });
+
+            return () => {
+                socket.off('sessionStarted');
+                socket.disconnect();
+            };
+        }
+    }, [isDashboard]);
 
     if (!isDashboard) {
         return (
@@ -84,15 +120,53 @@ const StudentDashboard = () => {
                             <p className="text-gray-500 font-medium">Welcome back, {user?.name}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4 mt-4 md:mt-0">
-                        <button className="p-3 bg-gray-50 text-gray-400 rounded-xl hover:text-blue-600 transition-all relative">
-                            <Bell size={20} />
-                            <span className="absolute top-3 right-3 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
-                        </button>
-                        <button onClick={logout} className="flex items-center gap-2 px-5 py-2.5 text-gray-600 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-xl transition-all duration-200 font-bold">
-                            <LogOut size={18} />
-                            Log Out
-                        </button>
+                    <div className="flex items-center gap-4 mt-4 md:mt-0 relative group">
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                                className={`p-3 rounded-xl transition-all relative ${showNotifDropdown ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400 hover:text-blue-600'}`}
+                            >
+                                <Bell size={20} />
+                                {notifications.length > 0 && (
+                                    <span className="absolute top-2.5 right-2.5 w-3 h-3 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>
+                                )}
+                            </button>
+
+                            {/* Notification Dropdown */}
+                            {showNotifDropdown && (
+                                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="p-4 border-b flex justify-between items-center">
+                                        <h4 className="font-bold text-gray-900 text-sm">System Notifications</h4>
+                                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">{notifications.length}</span>
+                                    </div>
+                                    <div className="max-h-64 overflow-y-auto">
+                                        {notifications.length > 0 ? (
+                                            notifications.map(n => (
+                                                <div key={n.id} className={`p-4 border-b hover:bg-gray-50 transition-colors ${n.isInitial ? 'border-l-4 border-l-blue-400' : 'border-l-4 border-l-rose-400'}`}>
+                                                    <p className="text-xs text-gray-800 font-bold mb-1">{n.message}</p>
+                                                    <p className="text-[10px] text-gray-400 font-medium">{n.time}</p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="p-8 text-center text-gray-400 text-xs italic">
+                                                No new notifications
+                                            </div>
+                                        )}
+                                    </div>
+                                    {notifications.length > 0 && (
+                                        <button
+                                            onClick={() => {
+                                                setNotifications([]);
+                                                setShowNotifDropdown(false);
+                                            }}
+                                            className="w-full p-3 text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors rounded-b-2xl border-t"
+                                        >
+                                            Clear All
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </header>
 
@@ -116,6 +190,29 @@ const StudentDashboard = () => {
                                 <div className="relative z-10">
                                     <h3 className="text-xl font-bold text-gray-900 mb-2">Live Sessions</h3>
                                     <p className="text-gray-500 mb-8 max-w-md">Select an active lecture to begin multi-factor biometric verification.</p>
+
+                                    {notifications.length > 0 && (
+                                        <div className="mb-6 animate-bounce">
+                                            <div className="bg-blue-600 text-white p-4 rounded-2xl shadow-lg flex justify-between items-center">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                                                        <Activity size={16} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-black uppercase tracking-wider">New Session Alert</p>
+                                                        <p className="text-sm font-medium">{notifications[0].message}</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => setNotifications(prev => prev.slice(1))}
+                                                    className="text-xs font-bold hover:underline"
+                                                >
+                                                    Dismiss
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="space-y-4">
                                         {activeSessions.length > 0 ? (
                                             activeSessions.map((session) => (
@@ -203,12 +300,12 @@ const StudentDashboard = () => {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
                                         <p className="text-2xl font-black text-blue-600">
-                                            {attendanceHistory.length > 0 ? Math.round((attendanceHistory.filter(r => r.status === 'MARKED').length / attendanceHistory.length) * 100) : '--'}%
+                                            {studentStats.avgAttendance}%
                                         </p>
                                         <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mt-1">Average</p>
                                     </div>
                                     <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                                        <p className="text-2xl font-black text-indigo-600">{attendanceHistory.filter(r => r.status === 'MARKED').length}</p>
+                                        <p className="text-2xl font-black text-indigo-600">{studentStats.presentCount}</p>
                                         <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mt-1">Present</p>
                                     </div>
                                 </div>

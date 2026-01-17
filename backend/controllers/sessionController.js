@@ -12,9 +12,12 @@ const startSession = async (req, res) => {
             courseId,
             facultyId: req.user._id,
             verificationRules,
-            qrToken: uuidv4(),
+            qrToken: Math.random().toString(36).substring(2, 8).toUpperCase(),
             active: true
         });
+
+        const io = req.app.get('socketio');
+        io.emit('sessionStarted', session);
 
         res.status(201).json(session);
     } catch (error) {

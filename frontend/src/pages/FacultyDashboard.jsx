@@ -39,10 +39,11 @@ const FacultyDashboard = () => {
 
     const [rules, setRules] = useState({
         face: true,
-        fingerprint: true,
         idCard: true,
         liveness: true
     });
+
+    const [studentsList, setStudentsList] = useState([]);
 
     useEffect(() => {
         if (user && user._id !== id) {
@@ -79,9 +80,11 @@ const FacultyDashboard = () => {
 
     const fetchInitialData = async () => {
         try {
-            const [activeRes, anomaliesRes] = await Promise.all([
+            const [activeRes, anomaliesRes, statsRes, studentsRes] = await Promise.all([
                 api.get('/session/active'),
-                api.get('/attendance/anomalies')
+                api.get('/attendance/anomalies'),
+                api.get('/attendance/stats'),
+                api.get('/attendance/students-summary')
             ]);
 
             const mySession = activeRes.data.find(s => {
@@ -95,6 +98,8 @@ const FacultyDashboard = () => {
                 fetchSessionAttendance(mySession._id);
             }
             setAnomalies(anomaliesRes.data || []);
+            if (statsRes.data) setStats(statsRes.data);
+            setStudentsList(studentsRes.data || []);
         } catch (err) {
             console.error('Error fetching data:', err);
         }
@@ -174,9 +179,6 @@ const FacultyDashboard = () => {
                             Start New Session
                         </button>
                     )}
-                    <button onClick={logout} className="p-2.5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition-all">
-                        <LogOut size={20} />
-                    </button>
                 </div>
             </header>
 
@@ -261,8 +263,8 @@ const FacultyDashboard = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${log.status === 'MARKED' ? 'bg-emerald-100 text-emerald-700' :
-                                                            log.status === 'FLAGGED' ? 'bg-amber-100 text-amber-700' :
-                                                                'bg-rose-100 text-rose-700'
+                                                        log.status === 'FLAGGED' ? 'bg-amber-100 text-amber-700' :
+                                                            'bg-rose-100 text-rose-700'
                                                         }`}>
                                                         {log.status}
                                                     </span>
@@ -334,6 +336,56 @@ const FacultyDashboard = () => {
                                 )}
                             </div>
                         </div>
+                    </div>
+                </div>
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b bg-gray-50/50 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                            <Users size={20} className="text-blue-600" />
+                            Master Student Roster
+                        </h3>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{studentsList.length} Students Enrolled</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Student Name</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email Address</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">Attendance Accuracy</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {studentsList.map((student, i) => (
+                                    <tr key={i} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center font-bold text-xs uppercase">
+                                                    {student.name?.substring(0, 2) || '??'}
+                                                </div>
+                                                <span className="font-bold text-gray-900">{student.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 font-medium">{student.email}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="w-full max-w-[100px] h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full ${student.accuracy > 80 ? 'bg-emerald-500' : student.accuracy > 50 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                        style={{ width: `${student.accuracy}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-gray-600">{student.accuracy}%</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase">Active</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </main>

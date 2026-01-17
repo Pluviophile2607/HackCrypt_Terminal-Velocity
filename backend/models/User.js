@@ -20,9 +20,12 @@ const userSchema = mongoose.Schema(
             enum: ['student', 'faculty', 'admin'],
             default: 'student',
         },
+        department: {
+            type: String,
+            default: 'Computer Science'
+        },
         biometricProfile: {
             faceVector: [Number],        // Simulated 128-d embedding
-            fingerprintHash: String      // Simulated hash
         },
         consentAccepted: {
             type: Boolean,

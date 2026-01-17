@@ -9,7 +9,7 @@ const { compareFaceVectors } = require('../utils/biometrics');
 // @access  Student
 const verifyAttendance = async (req, res) => {
     try {
-        const { sessionId, faceVector, fingerprint, qrToken, deviceHash, ipHash } = req.body;
+        const { sessionId, faceVector, qrToken, livenessBlinks, deviceHash, ipHash } = req.body;
         const studentId = req.user._id;
 
         // 1. Validate Session
@@ -27,86 +27,79 @@ const verifyAttendance = async (req, res) => {
         const user = await User.findById(studentId);
         let results = {
             face: { success: true, confidence: 100 },
-            fingerprint: true,
             idCard: true,
             liveness: true
         };
         let anomalies = [];
         let attempts = existing ? existing.attempts + 1 : 1;
 
-        // 3. Multi-Factor Pipeline
+        // 3. Simplified Verification Pipeline
 
         // A. Facial Recognition
         if (session.verificationRules.face) {
+            // Auto-sync profile if it doesn't exist (First time setup)
+            if (!user.biometricProfile?.faceVector && faceVector) {
+                user.biometricProfile = { ...user.biometricProfile, faceVector };
+                await user.save();
+            }
+
             const confidence = compareFaceVectors(user.biometricProfile.faceVector, faceVector);
-            results.face = { success: confidence > 85, confidence };
+            // Lowered threshold to 60 for better real-world reliability
+            results.face = { success: confidence > 60, confidence };
             if (!results.face.success) anomalies.push('Face mismatch');
         }
 
-        // B. Fingerprint
-        if (session.verificationRules.fingerprint) {
-            const match = user.biometricProfile.fingerprintHash === fingerprint;
-            results.fingerprint = match;
-            if (!match) anomalies.push('Fingerprint mismatch');
-        }
-
-        // C. ID Card / QR
+        // B. Session Token (QR Token)
         if (session.verificationRules.idCard) {
-            const match = session.qrToken === qrToken;
+            // Case-insensitive and trimmed comparison
+            const match = session.qrToken?.trim().toUpperCase() === qrToken?.trim().toUpperCase();
             results.idCard = match;
-            if (!match) anomalies.push('Invalid QR Token');
+            if (!match) anomalies.push('Invalid Session Token');
         }
 
-        // D. Liveness (Simulated Probability)
+        // C. Liveness (Blink Detection)
         if (session.verificationRules.liveness) {
-            results.liveness = Math.random() > 0.05; // 95% liveness success rate
-            if (!results.liveness) anomalies.push('Liveness verification failed');
+            results.liveness = livenessBlinks >= 2; // Require 2 blinks for security
+            if (!results.liveness) anomalies.push('Liveness (blinks) failed');
         }
 
         // 4. Decision Engine
         const isSuccess = Object.values(results).every(v => v === true || (v && v.success === true));
-        const status = isSuccess ? 'MARKED' : (anomalies.length > 1 ? 'FLAGGED' : 'FAILED');
+        const status = isSuccess ? 'MARKED' : (anomalies.length > 0 ? 'FAILED' : 'FAILED');
 
-        // 5. Proxy Prevention Logic
-        if (attempts > 3 && status !== 'MARKED') {
-            await Anomaly.create({
-                studentId,
-                sessionId,
-                reason: 'Too many failed verification attempts',
-                severity: 'HIGH',
-                details: { attempts, anomalies }
-            });
-        }
-
-        if (status === 'FLAGGED' || status === 'FAILED') {
+        // 5. Audit & Anomaly Reporting
+        if (status === 'FAILED') {
             await Anomaly.create({
                 studentId,
                 sessionId,
                 reason: anomalies.join(', '),
-                severity: status === 'FLAGGED' ? 'MEDIUM' : 'LOW',
-                details: { results, deviceHash, ipHash }
+                severity: attempts > 2 ? 'MEDIUM' : 'LOW',
+                details: { results, deviceHash, ipHash, attempts }
             });
         }
 
-        // 6. Upsert Attendance
+        // 6. Persistence
+        const updateData = {
+            studentId,
+            sessionId,
+            results,
+            capturedData: {
+                faceVector,
+                qrToken,
+                livenessBlinks
+            },
+            status,
+            attempts,
+            deviceHash,
+            ipHash
+        };
+
         let attendanceRecord;
         if (existing) {
-            existing.results = results;
-            existing.status = status;
-            existing.attempts = attempts;
-            existing.deviceHash = deviceHash;
-            existing.ipHash = ipHash;
+            Object.assign(existing, updateData);
             attendanceRecord = await existing.save();
         } else {
-            attendanceRecord = await Attendance.create({
-                studentId,
-                sessionId,
-                results,
-                status,
-                attempts,
-                deviceHash,
-                ipHash
-            });
+            attendanceRecord = await Attendance.create(updateData);
         }
 
         res.json({

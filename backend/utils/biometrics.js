@@ -15,13 +15,7 @@ const compareFaceVectors = (v1, v2) => {
     return (score / v1.length) * 100;
 };
 
-// Fingerprint hash simulation
-const generateFingerprintHash = (email) => {
-    return crypto.createHash('sha256').update(email + 'salt_123').digest('hex');
-};
-
 module.exports = {
     generateFaceVector,
     compareFaceVectors,
-    generateFingerprintHash
 };

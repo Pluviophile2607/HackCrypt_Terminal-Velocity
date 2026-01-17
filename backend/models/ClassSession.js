@@ -19,7 +19,6 @@ const classSessionSchema = new mongoose.Schema({
     },
     verificationRules: {
         face: { type: Boolean, default: true },
-        fingerprint: { type: Boolean, default: true },
         idCard: { type: Boolean, default: true },
         liveness: { type: Boolean, default: true }
     },

@@ -19,6 +19,7 @@ import {
     PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import api from '../api/axios';
+import { socket } from '../api/socket';
 
 const AdminDashboard = () => {
     const { user, logout } = useAuth();
@@ -26,52 +27,66 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
 
     // State
+    const [distributionData, setDistributionData] = useState([]);
+    const [deptData, setDeptData] = useState([]);
     const [anomalies, setAnomalies] = useState([]);
     const [stats, setStats] = useState({
         totalUsers: 0,
         activeSessions: 0,
         systemHealth: 99.8,
-        monthlyIncidents: 12
+        totalAnomalies: 0,
+        highRiskAnomalies: 0
     });
 
-    useEffect(() => {
-        // Admin route doesn't use :id, so we don't need to redirect based on it.
-        // ProtectedRoute already ensures the user is an admin.
-    }, []);
+    const [usersList, setUsersList] = useState([]);
 
-    useEffect(() => {
-        const fetchAdminData = async () => {
-            try {
-                const [anomaliesRes, sessionsRes] = await Promise.all([
-                    api.get('/attendance/anomalies'),
-                    api.get('/session/active')
-                ]);
-                setAnomalies(anomaliesRes.data);
-                setStats(s => ({
-                    ...s,
-                    activeSessions: sessionsRes.data.length
-                }));
-            } catch (err) {
-                console.error(err);
+    const fetchAdminData = async () => {
+        try {
+            const [anomaliesRes, statsRes, usersRes] = await Promise.all([
+                api.get('/attendance/anomalies'),
+                api.get('/attendance/stats'),
+                api.get('/attendance/all-users')
+            ]);
+
+            setAnomalies(anomaliesRes.data || []);
+            if (statsRes.data) {
+                setStats({
+                    totalUsers: statsRes.data.totalUsers || 0,
+                    activeSessions: statsRes.data.activeSessionsCount || 0,
+                    systemHealth: statsRes.data.systemHealth || 99.8,
+                    totalAnomalies: statsRes.data.totalAnomalies || 0,
+                    highRiskAnomalies: statsRes.data.highRiskAnomalies || 0
+                });
+                setDistributionData(statsRes.data.distribution || []);
+                setDeptData(statsRes.data.deptData || []);
             }
-        };
+            setUsersList(usersRes.data || []);
+        } catch (err) {
+            console.error('Failed to fetch admin data:', err);
+        }
+    };
+
+    useEffect(() => {
         fetchAdminData();
+
+        // Real-time updates for Admin
+        socket.on('connect', () => console.log('Admin connected to socket'));
+        socket.connect();
+
+        socket.on('liveUpdate', () => {
+            fetchAdminData(); // Refresh all stats when attendance is marked
+        });
+
+        socket.on('sessionStarted', () => {
+            fetchAdminData(); // Refresh active sessions count
+        });
+
+        return () => {
+            socket.off('liveUpdate');
+            socket.off('sessionStarted');
+            socket.disconnect();
+        };
     }, []);
-
-    // Mock Data for Charts
-    const deptData = [
-        { name: 'Computer Sci', value: 92 },
-        { name: 'Info Tech', value: 85 },
-        { name: 'Bio Med', value: 78 },
-        { name: 'Mech Eng', value: 81 },
-        { name: 'Electronics', value: 88 },
-    ];
-
-    const distributionData = [
-        { name: 'Students', value: 1250 },
-        { name: 'Faculty', value: 150 },
-        { name: 'Admins', value: 1 },
-    ];
 
     const COLORS = ['#4f46e5', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
@@ -98,9 +113,6 @@ const AdminDashboard = () => {
                             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sync: Active</span>
                         </div>
                     </div>
-                    <button onClick={logout} className="p-2.5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition-all">
-                        <LogOut size={20} />
-                    </button>
                 </div>
             </header>
 
@@ -113,9 +125,9 @@ const AdminDashboard = () => {
                         </div>
                         <div className="relative z-10">
                             <p className="text-gray-500 text-sm font-bold uppercase tracking-widest mb-1">Total Network</p>
-                            <h3 className="text-3xl font-black text-gray-900">1,401</h3>
+                            <h3 className="text-3xl font-black text-gray-900">{stats.totalUsers.toLocaleString()}</h3>
                             <div className="mt-4 flex items-center gap-1.5 text-xs text-emerald-600 font-bold bg-emerald-50 w-max px-2 py-0.5 rounded-lg">
-                                <Activity size={12} /> +12 Active Now
+                                <Activity size={12} /> Active Users
                             </div>
                         </div>
                     </div>
@@ -152,9 +164,9 @@ const AdminDashboard = () => {
                         </div>
                         <div className="relative z-10">
                             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Security Incidents</p>
-                            <h3 className="text-3xl font-black text-rose-500">{anomalies.length}</h3>
+                            <h3 className="text-3xl font-black text-rose-500">{stats.totalAnomalies}</h3>
                             <div className="mt-4 flex items-center gap-1.5 text-xs text-rose-100 font-bold bg-rose-500/20 w-max px-2 py-0.5 rounded-lg">
-                                High Risk: {anomalies.filter(a => a.severity === 'HIGH').length}
+                                High Risk: {stats.highRiskAnomalies}
                             </div>
                         </div>
                     </div>
@@ -285,8 +297,53 @@ const AdminDashboard = () => {
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b bg-gray-50/50 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-900 flex items-center gap-2 text-sm uppercase tracking-widest">
+                            <Users size={18} className="text-rose-500" />
+                            Global User Directory
+                        </h3>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{usersList.length} Accounts Registered</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Name</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Email</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Role</th>
+                                    <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Verification</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {usersList.map((usr, i) => (
+                                    <tr key={i} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs uppercase ${usr.role === 'faculty' ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'}`}>
+                                                    {usr.name?.substring(0, 2) || '??'}
+                                                </div>
+                                                <span className="font-bold text-gray-900">{usr.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-xs text-gray-500 font-medium">{usr.email}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${usr.role === 'faculty' ? 'bg-indigo-50 text-indigo-600' : 'bg-blue-50 text-blue-600'}`}>
+                                                {usr.role}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <span className="text-emerald-500 text-[10px] font-bold uppercase">Status: OK</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main >
+        </div >
     );
 };
 

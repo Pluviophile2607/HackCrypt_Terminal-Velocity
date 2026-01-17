@@ -53,19 +53,13 @@ const Hero = () => {
         // STUDENT VIEW
         if (user && user.role === 'student') {
             return (
-                <div className="flex flex-col md:flex-row justify-center gap-5">
+                <div className="flex justify-center">
                     <Link
                         to={`/student/${user._id}?view=dashboard`}
-                        className="px-8 py-4 rounded-full font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-2"
+                        className="px-10 py-5 rounded-full font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-xl hover:shadow-emerald-500/40 transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-3 text-lg"
                     >
                         Mark Attendance Now
-                        <ShieldCheck size={20} />
-                    </Link>
-                    <Link
-                        to={`/student/${user._id}?view=dashboard`}
-                        className="px-8 py-4 rounded-full font-bold text-gray-700 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm transition-all duration-300"
-                    >
-                        View My History
+                        <ShieldCheck size={24} />
                     </Link>
                 </div>
             );
